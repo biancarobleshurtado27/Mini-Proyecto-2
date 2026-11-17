@@ -1,0 +1,21 @@
+{
+  "name": "ticotalento-server",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch src/app.js",
+    "start": "node src/app.js",
+    "init-db": "node src/init-db.js",
+    "seed": "node src/seed.js",
+    "migrate-users": "node src/migrate-users.js"
+  },
+  "dependencies": {
+    "bcryptjs": "latest",
+    "cors": "latest",
+    "dotenv": "latest",
+    "express": "latest",
+    "jsonwebtoken": "latest",
+    "node-cron": "latest",
+    "pg": "latest"
+  }
+}
