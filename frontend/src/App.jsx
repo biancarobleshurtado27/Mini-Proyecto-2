@@ -1,10 +1,7 @@
 import { useEffect, useState } from 'react'
 import { BarChart, Bar, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import Sidebar from './components/Sidebar'
-import HomePage from './pages/HomePage'
-import PoliciesPage from './pages/PoliciesPage'
-import MyDataPage from './pages/MyDataPage'
-import HelpPage from './pages/HelpPage'
+import { renderRoute } from './routes/routing'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
@@ -81,6 +78,6 @@ export default function App() {
   const login = (data) => { localStorage.setItem('ticotalento_session', JSON.stringify(data)); setSession(data) }
   const logout = () => { localStorage.removeItem('ticotalento_session'); setSession(null) }
   if (!session) return <Login onLogin={login} />
-  const pages = { inicio: <HomePage setPage={setPage} role={session.role} />, chat: <Chat token={session.access_token} />, politicas: <PoliciesPage setPage={setPage} />, datos: <MyDataPage setPage={setPage} />, ayuda: <HelpPage />, dashboard: <Dashboard token={session.access_token} /> }
-  return <main className="portal-layout"><Sidebar page={page} setPage={setPage} role={session.role} /><section className="portal-main"><header><div><p className="eyebrow">PORTAL DE RECURSOS HUMANOS</p><h1>{page === 'dashboard' ? 'Panel de RRHH' : 'TicoTalento'}</h1></div><div className="session"><span>{session.role}</span><button onClick={logout}>Salir</button></div></header>{pages[page]}</section></main>
+  const pageContent = renderRoute(page, { setPage, role: session.role, token: session.access_token, Chat, Dashboard })
+  return <main className="portal-layout"><Sidebar page={page} setPage={setPage} role={session.role} /><section className="portal-main"><header><div><p className="eyebrow">PORTAL DE RECURSOS HUMANOS</p><h1>{page === 'dashboard' ? 'Panel de RRHH' : 'TicoTalento'}</h1></div><div className="session"><span>{session.role}</span><button onClick={logout}>Salir</button></div></header>{pageContent}</section></main>
 }
