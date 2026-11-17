@@ -22,4 +22,4 @@ DeepSeek se usa para redactar respuestas basadas en el contexto recuperado. La b
 
 ## Prueba posterior
 
-Con el backend iniciado, un usuario RRHH puede llamar `POST /api/ingestion/upload-deliverables` para cargar el PDF y la hoja de cálculo. Luego debe llamar `POST /api/ingestion/sync`. La respuesta debe devolver los conteos `indexed`, `updated` y `files_seen`.
+En una carpeta normal de Mi unidad, la cuenta de servicio no posee cuota de almacenamiento aunque tenga permiso de Editor. Por eso el PDF y la hoja de cálculo se deben subir manualmente a la carpeta, tal como se hizo con las políticas. El endpoint `POST /api/ingestion/upload-deliverables` queda disponible para unidades compartidas de Google Workspace. Luego un usuario RRHH debe llamar `POST /api/ingestion/sync`; la respuesta debe devolver los conteos `indexed`, `updated` y `files_seen`.
