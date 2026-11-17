@@ -1,5 +1,10 @@
 import { useEffect, useState } from 'react'
 import { BarChart, Bar, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import Sidebar from './components/Sidebar'
+import HomePage from './pages/HomePage'
+import PoliciesPage from './pages/PoliciesPage'
+import MyDataPage from './pages/MyDataPage'
+import HelpPage from './pages/HelpPage'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
@@ -72,8 +77,10 @@ function Dashboard({ token }) {
 
 export default function App() {
   const [session, setSession] = useState(() => JSON.parse(localStorage.getItem('ticotalento_session') || 'null'))
+  const [page, setPage] = useState('inicio')
   const login = (data) => { localStorage.setItem('ticotalento_session', JSON.stringify(data)); setSession(data) }
   const logout = () => { localStorage.removeItem('ticotalento_session'); setSession(null) }
   if (!session) return <Login onLogin={login} />
-  return <main className="app-shell"><header><div><p className="eyebrow">TICOTALENTO</p><h1>Portal de Recursos Humanos</h1></div><div className="session"><span>{session.role}</span><button onClick={logout}>Salir</button></div></header><div className={`workspace ${session.role === 'RRHH' ? 'with-dashboard' : ''}`}><Chat token={session.access_token} />{session.role === 'RRHH' && <Dashboard token={session.access_token} />}</div></main>
+  const pages = { inicio: <HomePage setPage={setPage} role={session.role} />, chat: <Chat token={session.access_token} />, politicas: <PoliciesPage setPage={setPage} />, datos: <MyDataPage setPage={setPage} />, ayuda: <HelpPage />, dashboard: <Dashboard token={session.access_token} /> }
+  return <main className="portal-layout"><Sidebar page={page} setPage={setPage} role={session.role} /><section className="portal-main"><header><div><p className="eyebrow">PORTAL DE RECURSOS HUMANOS</p><h1>{page === 'dashboard' ? 'Panel de RRHH' : 'TicoTalento'}</h1></div><div className="session"><span>{session.role}</span><button onClick={logout}>Salir</button></div></header>{pages[page]}</section></main>
 }
