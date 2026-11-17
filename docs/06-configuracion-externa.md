@@ -9,7 +9,7 @@ Esta es la única configuración que no puede completarse sin credenciales del p
 3. Guardar ese archivo como `service-account.json` en la raíz del repositorio. El archivo está ignorado por Git.
 4. Crear una carpeta de Drive para las políticas y compartirla con el correo de la cuenta de servicio, con permiso de lector.
 5. Subir los 12 documentos de `docs/policies/`, el PDF de `output/pdf/` y una hoja de cálculo/Google Sheet.
-6. Copiar el ID de la carpeta desde la URL de Drive.
+6. Copiar el ID de la carpeta desde la URL de Drive. También puede pegar la URL completa: el servidor extraerá el ID automáticamente.
 
 ## API de DeepSeek
 

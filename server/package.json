@@ -14,8 +14,10 @@
     "cors": "latest",
     "dotenv": "latest",
     "express": "latest",
+    "googleapis": "^190.0.0",
     "jsonwebtoken": "latest",
     "node-cron": "latest",
+    "pdfjs-dist": "^6.5.438",
     "pg": "latest"
   }
 }

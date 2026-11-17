@@ -8,6 +8,7 @@ import express from 'express'
 import jwt from 'jsonwebtoken'
 import cron from 'node-cron'
 import { pool, query } from './db.js'
+import { searchIndexedPolicy, syncDrive } from './drive.js'
 
 const app = express()
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
@@ -67,6 +68,12 @@ async function answerWithDeepSeek(question, context) {
   } catch { return null }
 }
 async function policyAnswer(question) {
+  const indexed = await searchIndexedPolicy(question)
+  if (indexed) {
+    const context = indexed.contenido.slice(0, 4000)
+    const generated = await answerWithDeepSeek(question, context)
+    return { answer: generated || `Según la política indexada: ${context.slice(0, 900)}`, citations: [{ document: indexed.nombre, section: indexed.seccion, url: indexed.drive_url }], escalated: false }
+  }
   const files = ['01-politica-vacaciones.md','02-calendario-feriados.md','03-permisos-licencias.md','04-procedimiento-incapacidades.md','05-jornada-asistencia-teletrabajo.md','06-remuneracion-pagos-aguinaldo.md','07-catalogo-beneficios.md','08-onboarding-salida.md','09-desempeno-carrera.md','10-conducta-denuncias.md','11-privacidad-datos.md','12-uso-portal-ia.md']
   const terms = question.toLowerCase().match(/[a-záéíóúñ]{4,}/g) || []
   let best = null
@@ -121,7 +128,10 @@ app.post('/api/reports/generate', auth, rrhh, async (_, res) => res.json(await c
 app.post('/api/reports/backfill', auth, rrhh, async (_, res) => { const reports = []; for (let day = 29; day >= 0; day -= 1) reports.push(await createReport(new Date(Date.now() - day * 86400000))); res.json(reports) })
 app.get('/api/reports/latest', auth, rrhh, async (_, res) => { const row = (await query('SELECT * FROM reportes_diarios ORDER BY fecha DESC LIMIT 1')).rows[0]; res.json(row ? { date: row.fecha.toISOString().slice(0,10), data: row.datos_json, executive_summary: row.resumen_texto, generated_by: row.generado_por } : null) })
 app.get('/api/reports/history', auth, rrhh, async (_, res) => { const rows = (await query('SELECT * FROM reportes_diarios ORDER BY fecha DESC LIMIT 30')).rows; res.json(rows.map((row) => ({ date: row.fecha.toISOString().slice(0,10), data: row.datos_json, executive_summary: row.resumen_texto, generated_by: row.generado_por }))) })
-app.post('/api/ingestion/sync', auth, rrhh, (_, res) => res.status(503).json({ detail: 'Configura GOOGLE_DRIVE_FOLDER_ID, service-account.json y DEEPSEEK_API_KEY para activar la ingesta real.' }))
+app.post('/api/ingestion/sync', auth, rrhh, async (_, res) => {
+  try { res.json(await syncDrive()) }
+  catch (error) { res.status(503).json({ detail: error.message }) }
+})
 cron.schedule('0 7 * * *', () => createReport().catch(console.error), { timezone: 'America/Costa_Rica' })
 const port = Number(process.env.PORT || 3001)
 app.listen(port, () => console.log(`API JavaScript: http://localhost:${port}`))
