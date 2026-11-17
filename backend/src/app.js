@@ -7,7 +7,9 @@ import cors from 'cors'
 import express from 'express'
 import jwt from 'jsonwebtoken'
 import cron from 'node-cron'
+import { Op } from 'sequelize'
 import { pool, query } from './db.js'
+import { ConsultaChat, SaldoVacaciones, Solicitud, Usuario } from './models/index.js'
 import { backfillEmbeddings, searchIndexedPolicy, syncDrive, uploadDeliverables } from './drive.js'
 import { routeQuestion } from './agents/orchestrator-agent.js'
 
@@ -27,9 +29,9 @@ async function auth(req, res, next) {
     const token = req.headers.authorization?.replace('Bearer ', '')
     if (!token) throw new Error()
     const payload = jwt.verify(token, secret)
-    const result = await query('SELECT * FROM usuarios WHERE id=$1 AND activo=true', [payload.sub])
-    if (!result.rowCount) throw new Error()
-    req.user = result.rows[0]; next()
+    const user = await Usuario.findOne({ where: { id: payload.sub, activo: true } })
+    if (!user) throw new Error()
+    req.user = user.get({ plain: true }); next()
   } catch { res.status(401).json({ detail: 'Autenticación requerida' }) }
 }
 const rrhh = (req, res, next) => req.user?.rol === 'RRHH' ? next() : res.status(403).json({ detail: 'Se requiere el rol RRHH' })
@@ -37,8 +39,8 @@ const rrhh = (req, res, next) => req.user?.rol === 'RRHH' ? next() : res.status(
 app.get('/api/health', (_, res) => res.json({ status: 'ok', service: 'ticotalento-js-api' }))
 app.post('/api/auth/login', async (req, res) => {
   const { email, password } = req.body
-  const result = await query('SELECT * FROM usuarios WHERE email=$1 AND activo=true', [email])
-  const user = result.rows[0]
+  const record = await Usuario.findOne({ where: { email, activo: true } })
+  const user = record?.get({ plain: true })
   if (!user || !(await bcrypt.compare(password, user.password_hash))) return res.status(401).json({ detail: 'Credenciales inválidas' })
   res.json({ access_token: sign(user), token_type: 'bearer', role: user.rol, employee_id: user.colaborador_id })
 })
@@ -89,11 +91,11 @@ async function policyAnswer(question) {
 }
 async function personalAnswer(question, employeeId) {
   if (/vacacion|días me quedan|dias me quedan/i.test(question)) {
-    const row = (await query('SELECT * FROM saldos_vacaciones WHERE colaborador_id=$1 ORDER BY id DESC LIMIT 1', [employeeId])).rows[0]
+    const row = await SaldoVacaciones.findOne({ where: { colaborador_id: employeeId }, order: [['id', 'DESC']], raw: true })
     return row ? `Tu saldo para ${row.periodo} es de ${row.dias_disponibles} días disponibles, de ${row.dias_asignados} asignados.` : 'No encontré saldo de vacaciones.'
   }
   if (/solicitud|permiso/i.test(question)) {
-    const row = (await query('SELECT * FROM solicitudes WHERE colaborador_id=$1 ORDER BY creada_en DESC LIMIT 1', [employeeId])).rows[0]
+    const row = await Solicitud.findOne({ where: { colaborador_id: employeeId }, order: [['creada_en', 'DESC']], raw: true })
     return row ? `Tu solicitud más reciente es ${row.tipo}, del ${row.fecha_inicio.toISOString().slice(0,10)} al ${row.fecha_fin.toISOString().slice(0,10)}, y está ${row.estado}.` : 'No encontré solicitudes.'
   }
   if (/pago|quincena/i.test(question)) return 'Tu próximo pago corresponde al siguiente día 15 o último día hábil, según el calendario de planilla.'
@@ -107,7 +109,7 @@ app.post('/api/chat', auth, async (req, res) => {
   else if (intent === 'MIXTA') { const policy = await policyAnswer(question); response = { answer: `${await personalAnswer(question, req.user.colaborador_id)}\n\n${policy.answer}`, intent, agent: 'orquestador', citations: policy.citations, escalated: policy.escalated } }
   else if (intent === 'DATO_PERSONAL') response = { answer: await personalAnswer(question, req.user.colaborador_id), intent, agent: 'agente_datos', citations: [] }
   else { const policy = await policyAnswer(question); response = { ...policy, intent, agent: 'agente_politicas' } }
-  await query('INSERT INTO consultas_chat(colaborador_id,pregunta,intencion,agente,documentos_citados,resuelta,escalada,latencia_ms) VALUES($1,$2,$3,$4,$5,$6,$7,$8)', [req.user.colaborador_id, question, response.intent, response.agent, JSON.stringify(response.citations), !response.escalated && !response.restricted, Boolean(response.escalated), Date.now() - start])
+  await ConsultaChat.create({ colaborador_id: req.user.colaborador_id, pregunta: question, intencion: response.intent, agente: response.agent, documentos_citados: response.citations, resuelta: !response.escalated && !response.restricted, escalada: Boolean(response.escalated), latencia_ms: Date.now() - start })
   res.json(response)
 })
 
