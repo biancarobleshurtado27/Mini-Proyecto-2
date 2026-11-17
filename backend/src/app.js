@@ -9,6 +9,7 @@ import jwt from 'jsonwebtoken'
 import cron from 'node-cron'
 import { pool, query } from './db.js'
 import { backfillEmbeddings, searchIndexedPolicy, syncDrive, uploadDeliverables } from './drive.js'
+import { routeQuestion } from './agents/orchestrator-agent.js'
 
 const app = express()
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
@@ -16,6 +17,7 @@ const secret = process.env.APP_SECRET_KEY || 'development-only-change-this-to-a-
 const deepseekKey = process.env.DEEPSEEK_API_KEY
 const deepseekUrl = process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com'
 const deepseekModel = process.env.DEEPSEEK_MODEL || 'deepseek-flash'
+const policyPromptPath = path.join(root, 'backend', 'src', 'prompts', 'politicas.md')
 app.use(cors({ origin: process.env.FRONTEND_ORIGIN || 'http://localhost:5173' }))
 app.use(express.json())
 
@@ -42,14 +44,11 @@ app.post('/api/auth/login', async (req, res) => {
 })
 app.get('/api/auth/me', auth, (req, res) => res.json({ id: req.user.id, email: req.user.email, role: req.user.rol, employee_id: req.user.colaborador_id }))
 
-const restricted = /compañero|companero|otra persona|gerente general|salario del gerente|vacaciones de juan|gana\s+(?!yo\b)[a-záéíóúñ]+|(?:salario|sueldo|vacaciones|saldo|solicitud|incapacidad)\s+(?:de|del|la)\s+(?!mi\b|mis\b|yo\b)[a-záéíóúñ]+/i
-const outOfScope = /película|pelicula|receta|deporte|clima/i
-const dataQuestion = /me quedan|mi saldo|mi solicitud|próximo pago|proximo pago|mi evaluación|mi evaluacion/i
-const mixedQuestion = /acumular|pasar.*otro año|pasar.*otro ano/i
 const clean = (text) => text.replace(/^#.*$/gm, '').replace(/\*\*/g, '').replace(/\n+/g, ' ').replace(/\s+/g, ' ').trim()
 async function answerWithDeepSeek(question, context) {
   if (!deepseekKey) return null
   try {
+    const systemPrompt = await readFile(policyPromptPath, 'utf8')
     const response = await fetch(`${deepseekUrl}/chat/completions`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${deepseekKey}`, 'Content-Type': 'application/json' },
@@ -58,7 +57,7 @@ async function answerWithDeepSeek(question, context) {
         max_tokens: 450,
         reasoning_effort: 'none',
         messages: [
-          { role: 'system', content: 'Responde en español usando solo el contexto entregado. Si no basta, dilo. No inventes reglas ni cifras.' },
+          { role: 'system', content: systemPrompt },
           { role: 'user', content: `Contexto de política:\n${context}\n\nPregunta: ${question}` },
         ],
       }),
@@ -102,11 +101,12 @@ async function personalAnswer(question, employeeId) {
 }
 app.post('/api/chat', auth, async (req, res) => {
   const start = Date.now(); const question = req.body.question || ''; let response
-  if (restricted.test(question)) response = { answer: 'No puedo compartir datos personales, saldos, salarios ni solicitudes de otra persona.', intent: 'RESTRINGIDA', agent: 'orquestador', citations: [], restricted: true }
-  else if (outOfScope.test(question)) response = { answer: 'Este portal solo atiende consultas sobre Recursos Humanos.', intent: 'FUERA_DE_ALCANCE', agent: 'orquestador', citations: [] }
-  else if (dataQuestion.test(question) && mixedQuestion.test(question)) { const policy = await policyAnswer(question); response = { answer: `${await personalAnswer(question, req.user.colaborador_id)}\n\n${policy.answer}`, intent: 'MIXTA', agent: 'orquestador', citations: policy.citations, escalated: policy.escalated } }
-  else if (dataQuestion.test(question)) response = { answer: await personalAnswer(question, req.user.colaborador_id), intent: 'DATO_PERSONAL', agent: 'agente_datos', citations: [] }
-  else { const policy = await policyAnswer(question); response = { ...policy, intent: 'POLITICA', agent: 'agente_politicas' } }
+  const intent = routeQuestion(question)
+  if (intent === 'RESTRINGIDA') response = { answer: 'No puedo compartir datos personales, saldos, salarios ni solicitudes de otra persona.', intent, agent: 'orquestador', citations: [], restricted: true }
+  else if (intent === 'FUERA_DE_ALCANCE') response = { answer: 'Este portal solo atiende consultas sobre Recursos Humanos.', intent, agent: 'orquestador', citations: [] }
+  else if (intent === 'MIXTA') { const policy = await policyAnswer(question); response = { answer: `${await personalAnswer(question, req.user.colaborador_id)}\n\n${policy.answer}`, intent, agent: 'orquestador', citations: policy.citations, escalated: policy.escalated } }
+  else if (intent === 'DATO_PERSONAL') response = { answer: await personalAnswer(question, req.user.colaborador_id), intent, agent: 'agente_datos', citations: [] }
+  else { const policy = await policyAnswer(question); response = { ...policy, intent, agent: 'agente_politicas' } }
   await query('INSERT INTO consultas_chat(colaborador_id,pregunta,intencion,agente,documentos_citados,resuelta,escalada,latencia_ms) VALUES($1,$2,$3,$4,$5,$6,$7,$8)', [req.user.colaborador_id, question, response.intent, response.agent, JSON.stringify(response.citations), !response.escalated && !response.restricted, Boolean(response.escalated), Date.now() - start])
   res.json(response)
 })
