@@ -42,7 +42,7 @@ app.post('/api/auth/login', async (req, res) => {
 })
 app.get('/api/auth/me', auth, (req, res) => res.json({ id: req.user.id, email: req.user.email, role: req.user.rol, employee_id: req.user.colaborador_id }))
 
-const restricted = /compañero|companero|otra persona|gerente general|salario del gerente|vacaciones de juan|(?:cuánto|cuanto)\s+gana\s+(?!yo\b)[a-záéíóúñ]+|(?:salario|sueldo|vacaciones|saldo|solicitud|incapacidad)\s+(?:de|del|la)\s+(?!mi\b|mis\b|yo\b)[a-záéíóúñ]+/i
+const restricted = /compañero|companero|otra persona|gerente general|salario del gerente|vacaciones de juan|gana\s+(?!yo\b)[a-záéíóúñ]+|(?:salario|sueldo|vacaciones|saldo|solicitud|incapacidad)\s+(?:de|del|la)\s+(?!mi\b|mis\b|yo\b)[a-záéíóúñ]+/i
 const outOfScope = /película|pelicula|receta|deporte|clima/i
 const dataQuestion = /me quedan|mi saldo|mi solicitud|próximo pago|proximo pago|mi evaluación|mi evaluacion/i
 const mixedQuestion = /acumular|pasar.*otro año|pasar.*otro ano/i
