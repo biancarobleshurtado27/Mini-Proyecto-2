@@ -21,7 +21,7 @@ Portal interno para que colaboradores consulten políticas de RRHH y sus propios
 ## Estructura
 
 ```text
-server/        API, agentes y acceso a PostgreSQL en JavaScript
+backend/       API, agentes y acceso a PostgreSQL en JavaScript (Node.js)
 frontend/      Aplicación web
 docs/          Políticas, arquitectura, gobernanza y evaluación
 infra/         Docker y base de datos
@@ -31,8 +31,8 @@ infra/         Docker y base de datos
 
 1. Copie `.env.example` a `.env` y complete los valores externos cuando estén disponibles.
 2. Levante PostgreSQL con `docker compose up -d db`.
-3. Desde `server`, ejecute `npm install`, `npm run init-db` y `npm run seed`.
-4. Ejecute el backend con `npm run dev` desde `server`.
+3. Desde `backend`, ejecute `npm install`, `npm run init-db` y `npm run seed`.
+4. Ejecute el backend con `npm run dev` desde `backend`.
 5. Desde `frontend`, ejecute `npm install` y `npm run dev`.
 
 ## Cuentas de demostración

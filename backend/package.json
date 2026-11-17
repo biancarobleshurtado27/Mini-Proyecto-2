@@ -1,5 +1,5 @@
 {
-  "name": "ticotalento-server",
+  "name": "ticotalento-backend",
   "private": true,
   "type": "module",
   "scripts": {
