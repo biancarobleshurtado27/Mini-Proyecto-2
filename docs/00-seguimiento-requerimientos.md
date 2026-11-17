@@ -20,7 +20,7 @@ Leyenda: `[x]` completado, `[-]` en progreso, `[ ]` pendiente.
 
 ## Agentes y RAG
 
-- [-] Agente de ingesta: código para Drive, PDF/Docs/Sheets, fragmentación y embeddings; faltan credenciales y ejecución real.
+- [-] Agente de ingesta: código para Drive, PDF/Docs/Sheets y fragmentación; faltan credenciales y estrategia de embeddings.
 - [-] Base vectorial con metadatos, versiones y enlaces de origen; falta poblarla desde Drive.
 - [x] Orquestador: política, dato personal, consulta mixta, restringida y fuera de alcance.
 - [-] Agente de políticas con recuperación local y citas; falta ingestión Drive, embeddings y pgvector.

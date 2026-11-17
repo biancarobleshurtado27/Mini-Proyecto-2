@@ -11,12 +11,14 @@ Esta es la única configuración que no puede completarse sin credenciales del p
 5. Subir los 12 documentos de `docs/policies/`, el PDF de `output/pdf/` y una hoja de cálculo/Google Sheet.
 6. Copiar el ID de la carpeta desde la URL de Drive.
 
-## Modelo de embeddings
+## API de DeepSeek
 
-1. Crear o reutilizar una clave API del proveedor seleccionado.
+1. Crear una clave API en la plataforma de DeepSeek.
 2. Copiar `.env.example` a `.env`.
-3. Definir `OPENAI_API_KEY`, `OPENAI_EMBEDDING_MODEL` y `GOOGLE_DRIVE_FOLDER_ID`.
+3. Definir `DEEPSEEK_API_KEY` y `GOOGLE_DRIVE_FOLDER_ID`.
 4. No comparta ni pegue las claves en el chat ni las suba a Git.
+
+DeepSeek se usa para redactar respuestas basadas en el contexto recuperado. La búsqueda local funciona sin clave. Si se implementa pgvector con embeddings reales, se elegirá un proveedor o modelo de embeddings compatible por separado.
 
 ## Prueba posterior
 

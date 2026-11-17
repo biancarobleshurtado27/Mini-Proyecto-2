@@ -15,7 +15,7 @@ Portal interno para que colaboradores consulten políticas de RRHH y sus propios
 - Backend: Node.js + Express.
 - Base de datos: PostgreSQL + pgvector.
 - Frontend: React + Vite.
-- IA: proveedor configurable mediante variables de entorno.
+- IA: DeepSeek mediante API y variables de entorno.
 - Documentos: Google Drive API con cuenta de servicio.
 
 ## Estructura
@@ -43,6 +43,6 @@ infra/         Docker y base de datos
 
 ## Configuración pendiente para RAG real
 
-Consulte [la guía de configuración externa](docs/06-configuracion-externa.md). Sin la cuenta de servicio de Google Drive, el ID de carpeta y una clave de embeddings, la aplicación funciona con las políticas locales de demostración, pero no puede sincronizar ni vectorizar la carpeta real de Drive.
+Consulte [la guía de configuración externa](docs/06-configuracion-externa.md). Sin la cuenta de servicio de Google Drive, el ID de carpeta y una clave DeepSeek, la aplicación funciona con las políticas locales de demostración, pero no puede sincronizar ni enriquecer las respuestas con IA.
 
 > Todos los datos del proyecto son simulados. El portal no sustituye decisiones de RRHH ni asesoría legal.

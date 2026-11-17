@@ -12,6 +12,9 @@ import { pool, query } from './db.js'
 const app = express()
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
 const secret = process.env.APP_SECRET_KEY || 'development-only-change-this-to-a-32-character-secret'
+const deepseekKey = process.env.DEEPSEEK_API_KEY
+const deepseekUrl = process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com'
+const deepseekModel = process.env.DEEPSEEK_MODEL || 'deepseek-flash'
 app.use(cors({ origin: process.env.FRONTEND_ORIGIN || 'http://localhost:5173' }))
 app.use(express.json())
 
@@ -43,6 +46,26 @@ const outOfScope = /película|pelicula|receta|deporte|clima/i
 const dataQuestion = /me quedan|mi saldo|mi solicitud|próximo pago|proximo pago|mi evaluación|mi evaluacion/i
 const mixedQuestion = /acumular|pasar.*otro año|pasar.*otro ano/i
 const clean = (text) => text.replace(/^#.*$/gm, '').replace(/\*\*/g, '').replace(/\n+/g, ' ').replace(/\s+/g, ' ').trim()
+async function answerWithDeepSeek(question, context) {
+  if (!deepseekKey) return null
+  try {
+    const response = await fetch(`${deepseekUrl}/chat/completions`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${deepseekKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: deepseekModel,
+        max_tokens: 450,
+        reasoning_effort: 'none',
+        messages: [
+          { role: 'system', content: 'Responde en español usando solo el contexto entregado. Si no basta, dilo. No inventes reglas ni cifras.' },
+          { role: 'user', content: `Contexto de política:\n${context}\n\nPregunta: ${question}` },
+        ],
+      }),
+    })
+    if (!response.ok) return null
+    return (await response.json()).choices?.[0]?.message?.content?.trim() || null
+  } catch { return null }
+}
 async function policyAnswer(question) {
   const files = ['01-politica-vacaciones.md','02-calendario-feriados.md','03-permisos-licencias.md','04-procedimiento-incapacidades.md','05-jornada-asistencia-teletrabajo.md','06-remuneracion-pagos-aguinaldo.md','07-catalogo-beneficios.md','08-onboarding-salida.md','09-desempeno-carrera.md','10-conducta-denuncias.md','11-privacidad-datos.md','12-uso-portal-ia.md']
   const terms = question.toLowerCase().match(/[a-záéíóúñ]{4,}/g) || []
@@ -54,7 +77,9 @@ async function policyAnswer(question) {
   }
   if (!best || best.score === 0) return { answer: 'No encontré una política aprobada que responda esa consulta. Puedo escalarla a Recursos Humanos.', citations: [], escalated: true }
   const name = best.file.replace(/^\d+-/, '').replace('.md', '').replaceAll('-', ' ')
-  return { answer: `Según la política interna: ${clean(best.content).slice(0, 900)}`, citations: [{ document: name, section: 'Política interna', url: `/docs/policies/${best.file}` }], escalated: false }
+  const context = clean(best.content).slice(0, 4000)
+  const generated = await answerWithDeepSeek(question, context)
+  return { answer: generated || `Según la política interna: ${context.slice(0, 900)}`, citations: [{ document: name, section: 'Política interna', url: `/docs/policies/${best.file}` }], escalated: false }
 }
 async function personalAnswer(question, employeeId) {
   if (/vacacion|días me quedan|dias me quedan/i.test(question)) {
@@ -96,7 +121,7 @@ app.post('/api/reports/generate', auth, rrhh, async (_, res) => res.json(await c
 app.post('/api/reports/backfill', auth, rrhh, async (_, res) => { const reports = []; for (let day = 29; day >= 0; day -= 1) reports.push(await createReport(new Date(Date.now() - day * 86400000))); res.json(reports) })
 app.get('/api/reports/latest', auth, rrhh, async (_, res) => { const row = (await query('SELECT * FROM reportes_diarios ORDER BY fecha DESC LIMIT 1')).rows[0]; res.json(row ? { date: row.fecha.toISOString().slice(0,10), data: row.datos_json, executive_summary: row.resumen_texto, generated_by: row.generado_por } : null) })
 app.get('/api/reports/history', auth, rrhh, async (_, res) => { const rows = (await query('SELECT * FROM reportes_diarios ORDER BY fecha DESC LIMIT 30')).rows; res.json(rows.map((row) => ({ date: row.fecha.toISOString().slice(0,10), data: row.datos_json, executive_summary: row.resumen_texto, generated_by: row.generado_por }))) })
-app.post('/api/ingestion/sync', auth, rrhh, (_, res) => res.status(503).json({ detail: 'Configura GOOGLE_DRIVE_FOLDER_ID, service-account.json y OPENAI_API_KEY para activar la ingesta real.' }))
+app.post('/api/ingestion/sync', auth, rrhh, (_, res) => res.status(503).json({ detail: 'Configura GOOGLE_DRIVE_FOLDER_ID, service-account.json y DEEPSEEK_API_KEY para activar la ingesta real.' }))
 cron.schedule('0 7 * * *', () => createReport().catch(console.error), { timezone: 'America/Costa_Rica' })
 const port = Number(process.env.PORT || 3001)
 app.listen(port, () => console.log(`API JavaScript: http://localhost:${port}`))
