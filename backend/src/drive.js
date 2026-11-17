@@ -8,6 +8,19 @@ import { query } from './db.js'
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
 const docsMime = 'application/vnd.google-apps.document'
 const sheetsMime = 'application/vnd.google-apps.spreadsheet'
+const vectorSize = 1536
+
+function localEmbedding(text) {
+  const vector = new Float32Array(vectorSize)
+  const tokens = text.toLowerCase().match(/[a-záéíóúñ]{3,}/g) || []
+  for (const token of tokens) {
+    const digest = crypto.createHash('sha256').update(token).digest()
+    const index = digest.readUInt32BE(0) % vectorSize
+    vector[index] += digest[4] % 2 ? 1 : -1
+  }
+  const norm = Math.hypot(...vector) || 1
+  return `[${Array.from(vector, (value) => (value / norm).toFixed(6)).join(',')}]`
+}
 
 function chunks(text, size = 650, overlap = 100) {
   const words = text.split(/\s+/).filter(Boolean)
@@ -68,7 +81,8 @@ export async function syncDrive() {
       const hash = crypto.createHash('sha256').update(text).digest('hex')
       const existing = (await query('SELECT id, contenido_hash FROM documentos WHERE drive_file_id=$1', [file.id])).rows[0]
       seen.push(file.id)
-      if (existing?.contenido_hash === hash) { counters.unchanged += 1; continue }
+      const embeddedCount = existing ? Number((await query('SELECT COUNT(*)::int AS count FROM document_chunks WHERE documento_id=$1 AND embedding IS NOT NULL', [existing.id])).rows[0].count) : 0
+      if (existing?.contenido_hash === hash && embeddedCount > 0) { counters.unchanged += 1; continue }
       const document = (await query(
         `INSERT INTO documentos(drive_file_id,nombre,version,fecha_vigencia,responsable,drive_url,contenido_hash,indexado_en,eliminado)
          VALUES($1,$2,'1.0',CURRENT_DATE,'Recursos Humanos',$3,$4,NOW(),FALSE)
@@ -77,7 +91,7 @@ export async function syncDrive() {
       )).rows[0]
       await query('DELETE FROM document_chunks WHERE documento_id=$1', [document.id])
       for (const [index, chunk] of chunks(text).entries()) {
-        await query('INSERT INTO document_chunks(documento_id,seccion,contenido,metadata_json) VALUES($1,$2,$3,$4)', [document.id, `Fragmento ${index + 1}`, chunk, JSON.stringify({ file_id: file.id, modified: file.modifiedTime })])
+        await query('INSERT INTO document_chunks(documento_id,seccion,contenido,embedding,metadata_json) VALUES($1,$2,$3,$4::vector,$5)', [document.id, `Fragmento ${index + 1}`, chunk, localEmbedding(chunk), JSON.stringify({ file_id: file.id, modified: file.modifiedTime, embedding_model: 'hashing-lexical-1536' })])
       }
       if (existing) counters.updated += 1; else counters.indexed += 1
     } catch (error) { counters.errors.push({ file: file.name, detail: error.message }) }
@@ -86,11 +100,30 @@ export async function syncDrive() {
   return counters
 }
 
+export async function backfillEmbeddings() {
+  const rows = (await query('SELECT id,contenido,metadata_json FROM document_chunks WHERE embedding IS NULL')).rows
+  for (const row of rows) {
+    const metadata = { ...(row.metadata_json || {}), embedding_model: 'hashing-lexical-1536' }
+    await query('UPDATE document_chunks SET embedding=$2::vector,metadata_json=$3 WHERE id=$1', [row.id, localEmbedding(row.contenido), JSON.stringify(metadata)])
+  }
+  return { embedded: rows.length }
+}
+
 export async function searchIndexedPolicy(question) {
   const terms = [...new Set((question.toLowerCase().match(/[a-záéíóúñ]{4,}/g) || []).filter((word) => !['cuanto','cuantos','donde','como','para','tengo'].includes(word)))]
-  const rows = (await query(
-    'SELECT d.nombre,d.drive_url,c.seccion,c.contenido FROM document_chunks c JOIN documentos d ON d.id=c.documento_id WHERE d.eliminado=FALSE LIMIT 500'
+  const questionEmbedding = localEmbedding(question)
+  let rows = (await query(
+    `SELECT d.nombre,d.drive_url,c.seccion,c.contenido,
+      1 - (c.embedding <=> $1::vector) AS vector_score
+     FROM document_chunks c JOIN documentos d ON d.id=c.documento_id
+     WHERE d.eliminado=FALSE AND c.embedding IS NOT NULL
+     ORDER BY c.embedding <=> $1::vector LIMIT 100`, [questionEmbedding]
   )).rows
+  if (!rows.length) {
+    rows = (await query(
+      'SELECT d.nombre,d.drive_url,c.seccion,c.contenido,0 AS vector_score FROM document_chunks c JOIN documentos d ON d.id=c.documento_id WHERE d.eliminado=FALSE LIMIT 500'
+    )).rows
+  }
   const ranked = rows.map((row) => {
     const content = row.contenido.toLowerCase()
     const fileName = row.nombre.toLowerCase()
@@ -101,7 +134,7 @@ export async function searchIndexedPolicy(question) {
       const relatedFile = stem.length >= 4 && fileName.includes(stem) ? 6 : 0
       return total + inContent + inFileName + relatedFile
     }, 0)
-    return { ...row, score }
+    return { ...row, score: score + Math.max(0, Number(row.vector_score) || 0) * 10 }
   }).filter((row) => row.score > 0).sort((a, b) => b.score - a.score)
   return ranked[0] || null
 }

@@ -8,7 +8,7 @@ import express from 'express'
 import jwt from 'jsonwebtoken'
 import cron from 'node-cron'
 import { pool, query } from './db.js'
-import { searchIndexedPolicy, syncDrive } from './drive.js'
+import { backfillEmbeddings, searchIndexedPolicy, syncDrive } from './drive.js'
 
 const app = express()
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
@@ -131,6 +131,10 @@ app.get('/api/reports/history', auth, rrhh, async (_, res) => { const rows = (aw
 app.post('/api/ingestion/sync', auth, rrhh, async (_, res) => {
   try { res.json(await syncDrive()) }
   catch (error) { res.status(503).json({ detail: error.message }) }
+})
+app.post('/api/ingestion/reindex', auth, rrhh, async (_, res) => {
+  try { res.json(await backfillEmbeddings()) }
+  catch (error) { res.status(500).json({ detail: error.message }) }
 })
 cron.schedule('0 7 * * *', () => createReport().catch(console.error), { timezone: 'America/Costa_Rica' })
 const port = Number(process.env.PORT || 3001)
