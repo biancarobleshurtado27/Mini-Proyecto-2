@@ -1,4 +1,5 @@
 import crypto from 'node:crypto'
+import { createReadStream } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { google } from 'googleapis'
@@ -38,8 +39,27 @@ async function driveClient() {
     folderId = match[1]
   }
   const keyFile = path.join(root, 'service-account.json')
-  const auth = new google.auth.GoogleAuth({ keyFile, scopes: ['https://www.googleapis.com/auth/drive.readonly'] })
+  const auth = new google.auth.GoogleAuth({ keyFile, scopes: ['https://www.googleapis.com/auth/drive'] })
   return { drive: google.drive({ version: 'v3', auth }), folderId }
+}
+
+export async function uploadDeliverables() {
+  const { drive, folderId } = await driveClient()
+  const files = [
+    { name: 'politica-vacaciones.pdf', mimeType: 'application/pdf', filePath: path.join(root, 'output', 'pdf', 'politica-vacaciones.pdf') },
+    { name: 'Calendario_feriados_Costa_Rica_2026.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', filePath: path.join(root, 'outputs', 'hr-policy-calendar', 'Calendario_feriados_Costa_Rica_2026.xlsx') },
+  ]
+  const uploaded = []
+  for (const file of files) {
+    const found = await drive.files.list({ q: `'${folderId}' in parents and name='${file.name}' and trashed=false`, fields: 'files(id,name)' })
+    const media = { mimeType: file.mimeType, body: createReadStream(file.filePath) }
+    const existing = found.data.files?.[0]
+    const response = existing
+      ? await drive.files.update({ fileId: existing.id, media, fields: 'id,name,webViewLink' })
+      : await drive.files.create({ requestBody: { name: file.name, parents: [folderId] }, media, fields: 'id,name,webViewLink' })
+    uploaded.push({ name: response.data.name, id: response.data.id, url: response.data.webViewLink || '' })
+  }
+  return { uploaded }
 }
 
 async function getFileText(drive, file) {
