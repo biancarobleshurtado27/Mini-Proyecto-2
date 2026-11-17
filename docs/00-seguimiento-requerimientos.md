@@ -20,8 +20,8 @@ Leyenda: `[x]` completado, `[-]` en progreso, `[ ]` pendiente.
 
 ## Agentes y RAG
 
-- [x] Agente de ingesta: lectura de Google Drive, PDF/Docs/Sheets y fragmentación. Doce documentos fueron indexados sin errores.
-- [x] Base vectorial pgvector con metadatos, versiones y enlaces de origen; 12 fragmentos cuentan con embeddings locales generados en JavaScript y búsqueda vectorial con ranking léxico complementario.
+- [x] Agente de ingesta: lectura de Google Drive, PDF/Docs/Sheets/Excel y fragmentación. Catorce archivos fueron indexados sin errores.
+- [x] Base vectorial pgvector con metadatos, versiones y enlaces de origen; 14 fragmentos cuentan con embeddings locales generados en JavaScript y búsqueda vectorial con ranking léxico complementario.
 - [x] Orquestador: política, dato personal, consulta mixta, restringida y fuera de alcance.
 - [x] Agente de políticas con recuperación desde Drive, ranking por contenido/nombre y citas al archivo fuente.
 - [x] Agente de datos con SQL de solo lectura y filtro por usuario autenticado.

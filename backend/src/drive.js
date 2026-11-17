@@ -4,11 +4,13 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { google } from 'googleapis'
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs'
+import * as XLSX from 'xlsx'
 import { query } from './db.js'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
 const docsMime = 'application/vnd.google-apps.document'
 const sheetsMime = 'application/vnd.google-apps.spreadsheet'
+const xlsxMime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 const vectorSize = 1536
 
 function localEmbedding(text) {
@@ -73,6 +75,10 @@ async function getFileText(drive, file) {
   }
   const response = await drive.files.get({ fileId: file.id, alt: 'media' }, { responseType: 'arraybuffer' })
   const buffer = Buffer.from(response.data)
+  if (file.mimeType === xlsxMime) {
+    const workbook = XLSX.read(buffer, { type: 'buffer' })
+    return workbook.SheetNames.map((name) => `${name}\n${XLSX.utils.sheet_to_csv(workbook.Sheets[name])}`).join('\n\n')
+  }
   if (file.mimeType !== 'application/pdf') return buffer.toString('utf8')
   const document = await pdfjs.getDocument({ data: new Uint8Array(buffer) }).promise
   const pages = []

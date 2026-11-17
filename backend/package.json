@@ -18,6 +18,7 @@
     "jsonwebtoken": "latest",
     "node-cron": "latest",
     "pdfjs-dist": "^6.5.438",
-    "pg": "latest"
+    "pg": "latest",
+    "xlsx": "^0.18.5"
   }
 }
