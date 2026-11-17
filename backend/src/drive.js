@@ -91,6 +91,17 @@ export async function searchIndexedPolicy(question) {
   const rows = (await query(
     'SELECT d.nombre,d.drive_url,c.seccion,c.contenido FROM document_chunks c JOIN documentos d ON d.id=c.documento_id WHERE d.eliminado=FALSE LIMIT 500'
   )).rows
-  const ranked = rows.map((row) => ({ ...row, score: terms.filter((term) => row.contenido.toLowerCase().includes(term)).length })).filter((row) => row.score > 0).sort((a, b) => b.score - a.score)
+  const ranked = rows.map((row) => {
+    const content = row.contenido.toLowerCase()
+    const fileName = row.nombre.toLowerCase()
+    const score = terms.reduce((total, term) => {
+      const inContent = content.includes(term) ? 2 : 0
+      const inFileName = fileName.includes(term) ? 12 : 0
+      const stem = term.slice(0, -1)
+      const relatedFile = stem.length >= 4 && fileName.includes(stem) ? 6 : 0
+      return total + inContent + inFileName + relatedFile
+    }, 0)
+    return { ...row, score }
+  }).filter((row) => row.score > 0).sort((a, b) => b.score - a.score)
   return ranked[0] || null
 }
