@@ -23,10 +23,15 @@ function Login({ onLogin }) {
 }
 
 const suggestedQuestions = ['¿Cuántos días de vacaciones me quedan?', '¿Cómo reporto una incapacidad CCSS?', '¿Cuándo se calcula el aguinaldo?', '¿Cuál es la política de teletrabajo?']
-function Chat({ token }) {
+function Chat({ token, initialQuestion, onDraftUsed }) {
   const [question, setQuestion] = useState('')
   const [messages, setMessages] = useState([{ role: 'assistant', text: 'Hola. Soy el asistente virtual de TicoTalento. Puedo ayudarte con políticas, vacaciones, incapacidades, permisos y fechas de pago.' }])
   const [loading, setLoading] = useState(false)
+  useEffect(() => {
+    if (!initialQuestion) return
+    setQuestion(initialQuestion)
+    onDraftUsed?.()
+  }, [initialQuestion, onDraftUsed])
   const ask = async (value) => {
     if (!value.trim() || loading) return
     const asked = value.trim(); setQuestion(''); setMessages((items) => [...items, { role: 'user', text: asked }]); setLoading(true)
@@ -38,7 +43,7 @@ function Chat({ token }) {
     <div className="knowledge-banner"><b>Base de Conocimiento Verificada · Costa Rica</b><span>Motor RAG activo · fuentes internas indexadas</span></div>
     <div className="assistant-grid"><section className="chat-window"><header className="chat-heading"><div className="assistant-avatar">IA</div><div><h2>Asistente Virtual TicoTalento <em>IA LEGAL CR</em></h2><p>En línea · Conectado a Políticas 2026</p></div><button className="outline-button" onClick={() => setMessages([{ role: 'assistant', text: 'Nueva conversación iniciada. ¿Qué deseas consultar?' }])}>Nueva conversación</button></header>
       <div className="topic-tabs"><button className="selected">Todas</button><button onClick={() => ask('Política de vacaciones')}>Vacaciones</button><button onClick={() => ask('Información de CCSS')}>INS / CCSS</button><button onClick={() => ask('Cómo se calcula el aguinaldo')}>Aguinaldo</button></div>
-      <div className="messages"><span className="chat-time">Sesión protegida · respuestas con fuentes verificables</span>{messages.map((message, index) => <article key={index} className={`message ${message.role}`}><p>{message.text}</p>{message.citations?.map((citation) => <a key={`${citation.document}-${citation.section}`} href={citation.url} target="_blank" rel="noreferrer">▤ Fuente: {citation.document} · {citation.section}</a>)}{message.escalated && <small>Tu consulta fue marcada para seguimiento de RRHH.</small>}</article>)}{loading && <article className="message assistant">Buscando en la base de conocimiento…</article>}</div>
+      <div className="messages"><span className="chat-time">Sesión protegida · respuestas con fuentes verificables</span>{question && messages.length === 1 && <button className="prepared-question" onClick={() => ask(question)}><span>Consulta preparada</span>{question}<b>Enviar ahora</b></button>}{messages.map((message, index) => <article key={index} className={`message ${message.role}`}><p>{message.text}</p>{message.citations?.map((citation) => <a key={`${citation.document}-${citation.section}`} href={citation.url} target="_blank" rel="noreferrer">▤ Fuente: {citation.document} · {citation.section}</a>)}{message.escalated && <small>Tu consulta fue marcada para seguimiento de RRHH.</small>}</article>)}{loading && <article className="message assistant">Buscando en la base de conocimiento…</article>}</div>
       <form className="chat-form" onSubmit={(event) => { event.preventDefault(); ask(question) }}><input value={question} onChange={(e) => setQuestion(e.target.value)} placeholder="Escribe tu consulta sobre vacaciones, incapacidades o aguinaldo" /><button aria-label="Enviar consulta">Enviar</button></form><p className="chat-tip">Consejo: no incluyas datos médicos sensibles ni información de otras personas.</p>
     </section><aside className="chat-aside"><section><div className="aside-title"><h3>Preguntas frecuentes</h3><span>NORMATIVA CR</span></div>{suggestedQuestions.map((item) => <button className="suggestion" key={item} onClick={() => ask(item)}>{item}<small>Consultar respuesta verificada ›</small></button>)}</section><section><div className="aside-title"><h3>Documentos de referencia</h3><button>Ver todos</button></div>{['Reglamento interno de trabajo', 'Manual de beneficios y seguros', 'Formulario oficial de permisos'].map((document, index) => <div className="reference" key={document}><b>{index === 0 ? '▤' : index === 1 ? '◇' : '▣'}</b><span>{document}<small>Documento indexado</small></span><i>↓</i></div>)}</section><section className="confidential"><h3>¿Consulta confidencial?</h3><p>Para situaciones sensibles, pide atención directa del equipo de Gestión Humana.</p><button>▦ Solicitar cita privada con RRHH</button></section></aside></div>
   </section>
@@ -69,11 +74,12 @@ function Dashboard({ token }) {
 
 export default function App() {
   const [session, setSession] = useState(() => JSON.parse(localStorage.getItem('ticotalento_session') || 'null'))
-  const [page, setPage] = useState('inicio'); const [search, setSearch] = useState('')
+  const [page, setPage] = useState('inicio'); const [search, setSearch] = useState(''); const [chatDraft, setChatDraft] = useState('')
   const login = (data) => { localStorage.setItem('ticotalento_session', JSON.stringify(data)); setSession(data) }
   const logout = () => { localStorage.removeItem('ticotalento_session'); setSession(null) }
   if (!session) return <Login onLogin={login} />
-  const pageContent = renderRoute(page, { setPage, role: session.role, token: session.access_token, Chat, Dashboard })
+  const navigate = (nextPage, draft = '') => { if (nextPage === 'chat') setChatDraft(draft); setPage(nextPage) }
+  const pageContent = renderRoute(page, { setPage: navigate, role: session.role, token: session.access_token, Chat, Dashboard, chatDraft, clearChatDraft: () => setChatDraft('') })
   const titles = { politicas: 'Políticas y beneficios', datos: 'Mis datos y trámites', ayuda: 'Centro de ayuda' }
-  return <main className="portal-layout"><Sidebar page={page} setPage={setPage} role={session.role} /><section className="portal-main"><header className="topbar"><form className="top-search" onSubmit={(event) => { event.preventDefault(); setPage('chat') }}><Icon name="search" size={18} /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar políticas, código de trabajo, trámites (Cmd+K)…" /></form><span className="location-pill"><Icon name="pin" size={15} />Sede Escazú</span><div className="session"><button className="bell" onClick={() => setPage('ayuda')} aria-label="Notificaciones"><Icon name="bell" size={20} /><i /></button><div className="profile-block"><span className="user-avatar">MS</span><span className="user-name"><b>Mi perfil</b><small>{session.role === 'RRHH' ? 'Especialista de RRHH' : 'Colaborador'}</small></span></div><button className="logout" onClick={logout} aria-label="Cerrar sesión"><Icon name="logout" size={20} /></button></div></header>{titles[page] && <div className="page-title"><p className="eyebrow">PORTAL DE RECURSOS HUMANOS</p><h1>{titles[page]}</h1></div>}{pageContent}</section></main>
+  return <main className="portal-layout"><Sidebar page={page} setPage={navigate} role={session.role} /><section className="portal-main"><header className="topbar"><form className="top-search" onSubmit={(event) => { event.preventDefault(); navigate('chat', search || 'Necesito ayuda con una política de Recursos Humanos') }}><Icon name="search" size={18} /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar políticas, código de trabajo, trámites (Cmd+K)…" /></form><span className="location-pill"><Icon name="pin" size={15} />Sede Escazú</span><div className="session"><button className="bell" onClick={() => navigate('ayuda')} aria-label="Notificaciones"><Icon name="bell" size={20} /><i /></button><div className="profile-block"><span className="user-avatar">MS</span><span className="user-name"><b>Mi perfil</b><small>{session.role === 'RRHH' ? 'Especialista de RRHH' : 'Colaborador'}</small></span></div><button className="logout" onClick={logout} aria-label="Cerrar sesión"><Icon name="logout" size={20} /></button></div></header>{titles[page] && <div className="page-title"><p className="eyebrow">PORTAL DE RECURSOS HUMANOS</p><h1>{titles[page]}</h1></div>}{pageContent}</section></main>
 }
