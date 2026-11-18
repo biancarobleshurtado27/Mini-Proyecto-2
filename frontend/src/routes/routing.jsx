@@ -5,7 +5,7 @@ import HelpPage from '../pages/HelpPage'
 
 export function renderRoute(page, { setPage, role, token, Chat, Dashboard, chatContext, clearChatContext }) {
   const routes = {
-    inicio: <HomePage setPage={setPage} role={role} />,
+    inicio: <HomePage setPage={setPage} role={role} token={token} />,
     chat: <Chat token={token} chatContext={chatContext} onContextUsed={clearChatContext} />,
     politicas: <PoliciesPage setPage={setPage} />,
     datos: <MyDataPage setPage={setPage} />,

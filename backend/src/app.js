@@ -45,6 +45,12 @@ app.post('/api/auth/login', async (req, res) => {
   res.json({ access_token: sign(user), token_type: 'bearer', role: user.rol, employee_id: user.colaborador_id })
 })
 app.get('/api/auth/me', auth, (req, res) => res.json({ id: req.user.id, email: req.user.email, role: req.user.rol, employee_id: req.user.colaborador_id }))
+app.get('/api/me/summary', auth, async (req, res) => {
+  const balance = await SaldoVacaciones.findOne({ where: { colaborador_id: req.user.colaborador_id }, order: [['id', 'DESC']], raw: true })
+  const requests = await Solicitud.findAll({ where: { colaborador_id: req.user.colaborador_id }, order: [['creada_en', 'DESC']], raw: true })
+  const byStatus = Object.entries(requests.reduce((acc, item) => ({ ...acc, [item.estado]: (acc[item.estado] || 0) + 1 }), {})).map(([estado, cantidad]) => ({ estado, cantidad }))
+  res.json({ vacaciones: { asignados: balance?.dias_asignados || 0, tomados: balance?.dias_tomados || 0, disponibles: balance?.dias_disponibles || 0 }, solicitudes: byStatus, total_solicitudes: requests.length })
+})
 
 const clean = (text) => text.replace(/^#.*$/gm, '').replace(/\*\*/g, '').replace(/\n+/g, ' ').replace(/\s+/g, ' ').trim()
 async function answerWithDeepSeek(question, context) {
