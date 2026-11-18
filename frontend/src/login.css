@@ -1,3 +1,7 @@
 .login-shell{height:100vh;min-height:0;overflow:hidden}
 .login-brand-panel,.login-form-panel{height:100vh;min-height:0;overflow:hidden}
+.login-shell{grid-template-columns:minmax(420px,5fr) minmax(560px,7fr)}
+.login-brand-panel{padding:clamp(44px,5vw,80px)}
+.login-form-panel{padding:clamp(28px,4vw,56px)}
+.login-card{max-width:640px}
 @media(max-width:850px){.login-shell{height:auto;min-height:100vh;overflow:auto}.login-brand-panel,.login-form-panel{height:auto;min-height:0;overflow:visible}}
