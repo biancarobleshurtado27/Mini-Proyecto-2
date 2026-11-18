@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import Sidebar from './components/Sidebar'
 import Icon from './components/Icon'
+import horizontalLogo from './assets/ticotalento-logo-horizontal.png'
 import { api } from './services/api'
 import { getChatSuggestions } from './services/chatSuggestions'
 import { renderRoute } from './routes/routing'
@@ -16,7 +17,7 @@ function Login({ onLogin }) {
     catch (err) { setError(err.message) }
   }
   return <main className="login-shell"><section className="login-card">
-    <p className="eyebrow">TICOTALENTO · COSTA RICA</p><h1>Portal de Personas</h1>
+    <img className="login-logo" src={horizontalLogo} alt="TicoTalento, Portal de Personas Costa Rica" /><h1>Portal de Personas</h1>
     <p>Consulta políticas aprobadas, trámites y datos personales autorizados.</p>
     <form onSubmit={submit}><label>Correo<input value={email} onChange={(e) => setEmail(e.target.value)} /></label><label>Contraseña<input type="password" value={password} onChange={(e) => setPassword(e.target.value)} /></label>{error && <p className="error">{error}</p>}<button type="submit">Iniciar sesión</button></form>
     <small>Demo: Carlos (colaborador) o Ana (RRHH). Contraseña: Demo2026!</small>

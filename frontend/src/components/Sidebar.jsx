@@ -1,6 +1,6 @@
 import { navigation } from '../routes/navigation'
 import Icon from './Icon'
-import logo from '../assets/ticotalento-logo.svg'
+import logo from '../assets/ticotalento-isotipo.png'
 
 export default function Sidebar({ page, setPage, role }) {
   return <aside className="sidebar">
