@@ -77,11 +77,14 @@ function Dashboard({ token }) {
 
 export default function App() {
   const [session, setSession] = useState(() => JSON.parse(localStorage.getItem('ticotalento_session') || 'null'))
-  const [page, setPage] = useState('inicio'); const [search, setSearch] = useState(''); const [chatContext, setChatContext] = useState('')
+  const [page, setPage] = useState(() => localStorage.getItem('ticotalento_last_page') || 'inicio'); const [search, setSearch] = useState(''); const [chatContext, setChatContext] = useState('')
   const login = (data) => { localStorage.setItem('ticotalento_session', JSON.stringify(data)); setSession(data) }
-  const logout = () => { localStorage.removeItem('ticotalento_session'); setSession(null) }
+  const logout = () => { localStorage.removeItem('ticotalento_session'); localStorage.removeItem('ticotalento_last_page'); setSession(null) }
+  useEffect(() => {
+    if (session?.role !== 'RRHH' && page === 'dashboard') { setPage('inicio'); localStorage.setItem('ticotalento_last_page', 'inicio') }
+  }, [page, session])
   if (!session) return <Login onLogin={login} />
-  const navigate = (nextPage, context = '') => { if (nextPage === 'chat') setChatContext(context); setPage(nextPage) }
+  const navigate = (nextPage, context = '') => { if (nextPage === 'dashboard' && session.role !== 'RRHH') return; if (nextPage === 'chat') setChatContext(context); setPage(nextPage); localStorage.setItem('ticotalento_last_page', nextPage) }
   const pageContent = renderRoute(page, { setPage: navigate, role: session.role, token: session.access_token, Chat, Dashboard, chatContext, clearChatContext: () => setChatContext('') })
   const titles = { politicas: 'Políticas y beneficios', datos: 'Mis datos y trámites', ayuda: 'Centro de ayuda' }
   return <main className="portal-layout"><Sidebar page={page} setPage={navigate} role={session.role} /><section className="portal-main"><header className="topbar"><form className="top-search" onSubmit={(event) => { event.preventDefault(); navigate('chat', search || 'Necesito ayuda con una política de Recursos Humanos') }}><Icon name="search" size={18} /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar políticas, código de trabajo, trámites (Cmd+K)…" /></form><span className="location-pill"><Icon name="pin" size={15} />Sede Escazú</span><div className="session"><button className="bell" onClick={() => navigate('ayuda')} aria-label="Notificaciones"><Icon name="bell" size={20} /><i /></button><div className="profile-block"><span className="user-avatar">MS</span><span className="user-name"><b>Mi perfil</b><small>{session.role === 'RRHH' ? 'Especialista de RRHH' : 'Colaborador'}</small></span></div><button className="logout" onClick={logout} aria-label="Cerrar sesión"><Icon name="logout" size={20} /></button></div></header>{titles[page] && <div className="page-title"><p className="eyebrow">PORTAL DE RECURSOS HUMANOS</p><h1>{titles[page]}</h1></div>}{pageContent}</section></main>
