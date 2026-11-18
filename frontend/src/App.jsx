@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import Sidebar from './components/Sidebar'
+import Icon from './components/Icon'
 import { api } from './services/api'
 import { renderRoute } from './routes/routing'
 
@@ -74,5 +75,5 @@ export default function App() {
   if (!session) return <Login onLogin={login} />
   const pageContent = renderRoute(page, { setPage, role: session.role, token: session.access_token, Chat, Dashboard })
   const titles = { politicas: 'Políticas y beneficios', datos: 'Mis datos y trámites', ayuda: 'Centro de ayuda' }
-  return <main className="portal-layout"><Sidebar page={page} setPage={setPage} role={session.role} /><section className="portal-main"><header className="topbar"><form className="top-search" onSubmit={(event) => { event.preventDefault(); setPage('chat') }}><span>⌕</span><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar políticas, código de trabajo, trámites (Cmd+K)…" /></form><span className="location-pill">⌖ Sede Escazú</span><div className="session"><button className="bell" onClick={() => setPage('ayuda')}>♧<i /></button><span className="user-avatar">MS</span><span className="user-name">Mi perfil<small>{session.role === 'RRHH' ? 'Especialista de RRHH' : 'Colaborador'}</small></span><button className="logout" onClick={logout}>⇥</button></div></header>{titles[page] && <div className="page-title"><p className="eyebrow">PORTAL DE RECURSOS HUMANOS</p><h1>{titles[page]}</h1></div>}{pageContent}</section></main>
+  return <main className="portal-layout"><Sidebar page={page} setPage={setPage} role={session.role} /><section className="portal-main"><header className="topbar"><form className="top-search" onSubmit={(event) => { event.preventDefault(); setPage('chat') }}><Icon name="search" size={18} /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar políticas, código de trabajo, trámites (Cmd+K)…" /></form><span className="location-pill"><Icon name="pin" size={15} />Sede Escazú</span><div className="session"><button className="bell" onClick={() => setPage('ayuda')} aria-label="Notificaciones"><Icon name="bell" size={20} /><i /></button><div className="profile-block"><span className="user-avatar">MS</span><span className="user-name"><b>Mi perfil</b><small>{session.role === 'RRHH' ? 'Especialista de RRHH' : 'Colaborador'}</small></span></div><button className="logout" onClick={logout} aria-label="Cerrar sesión"><Icon name="logout" size={20} /></button></div></header>{titles[page] && <div className="page-title"><p className="eyebrow">PORTAL DE RECURSOS HUMANOS</p><h1>{titles[page]}</h1></div>}{pageContent}</section></main>
 }

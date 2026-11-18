@@ -1,7 +1,6 @@
 export const navigation = [
-  { id: 'inicio', label: 'Inicio', icon: '⌂' },
-  { id: 'chat', label: 'Asistente IA', icon: '♙' },
-  { id: 'politicas', label: 'Políticas & Beneficios', icon: '▤' },
-  { id: 'datos', label: 'Mis Datos & Trámites', icon: '▧' },
-  { id: 'ayuda', label: 'Ayuda & FAQ', icon: '?' },
+  { id: 'inicio', label: 'Inicio', icon: 'home' },
+  { id: 'chat', label: 'Asistente IA', icon: 'bot' },
+  { id: 'politicas', label: 'Políticas & Beneficios', icon: 'book' },
+  { id: 'datos', label: 'Mis Datos & Trámites', icon: 'briefcase' },
 ]
