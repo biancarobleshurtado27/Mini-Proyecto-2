@@ -1,9 +1,10 @@
 import { navigation } from '../routes/navigation'
 import Icon from './Icon'
+import logo from '../assets/ticotalento-logo.svg'
 
 export default function Sidebar({ page, setPage, role }) {
   return <aside className="sidebar">
-    <button className="brand" onClick={() => setPage('inicio')} aria-label="Ir al inicio"><span className="brand-mark">T</span><span><b>TicoTalento</b><small>Portal de<br />Personas CR</small></span></button>
+    <button className="brand" onClick={() => setPage('inicio')} aria-label="Ir al inicio"><img className="brand-mark" src={logo} alt="Logotipo TicoTalento" /><span><b>TicoTalento</b><small>Portal de<br />Personas CR</small></span></button>
     <p className="sidebar-label">COLABORADOR</p>
     <nav>{navigation.map((item) => <button key={item.id} onClick={() => setPage(item.id)} className={page === item.id ? 'nav-item active' : 'nav-item'}><Icon name={item.icon} size={18} /><span>{item.label}</span></button>)}</nav>
     {role === 'RRHH' && <><div className="nav-divider" /><p className="sidebar-label administration">ADMINISTRACIÓN</p><button onClick={() => setPage('dashboard')} className={page === 'dashboard' ? 'nav-item active' : 'nav-item'}><Icon name="grid" size={18} /><span>Panel RRHH</span></button></>}
