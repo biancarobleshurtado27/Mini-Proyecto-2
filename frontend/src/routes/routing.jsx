@@ -3,10 +3,10 @@ import PoliciesPage from '../pages/PoliciesPage'
 import MyDataPage from '../pages/MyDataPage'
 import HelpPage from '../pages/HelpPage'
 
-export function renderRoute(page, { setPage, role, token, Chat, Dashboard, chatDraft, clearChatDraft }) {
+export function renderRoute(page, { setPage, role, token, Chat, Dashboard, chatContext, clearChatContext }) {
   const routes = {
     inicio: <HomePage setPage={setPage} role={role} />,
-    chat: <Chat token={token} initialQuestion={chatDraft} onDraftUsed={clearChatDraft} />,
+    chat: <Chat token={token} chatContext={chatContext} onContextUsed={clearChatContext} />,
     politicas: <PoliciesPage setPage={setPage} />,
     datos: <MyDataPage setPage={setPage} />,
     ayuda: <HelpPage />,
