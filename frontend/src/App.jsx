@@ -6,6 +6,7 @@ import horizontalLogo from './assets/ticotalento-logo-horizontal.png'
 import { api } from './services/api'
 import { getChatSuggestions } from './services/chatSuggestions'
 import { renderRoute } from './routes/routing'
+import './login.css'
 
 function Login({ onLogin }) {
   const [email, setEmail] = useState('carlos.diaz.2@ticotalento.test')
