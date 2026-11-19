@@ -8,6 +8,7 @@ import { api } from './services/api'
 import { getChatSuggestions } from './services/chatSuggestions'
 import { renderRoute } from './routes/routing'
 import './login.css'
+import './login-motion.css'
 
 function MicrosoftLogo() {
   return (
