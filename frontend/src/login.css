@@ -10,9 +10,7 @@ body,
   margin: 0 !important;
   padding: 0 !important;
   width: 100% !important;
-  height: 100% !important;
-  overflow-x: hidden;
-  background-color: #0b2b32;
+  min-height: 100% !important;
 }
 
 /* Shell general a pantalla completa */
