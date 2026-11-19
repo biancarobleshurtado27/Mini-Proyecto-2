@@ -10,9 +10,7 @@ body,
   margin: 0 !important;
   padding: 0 !important;
   width: 100% !important;
-  height: 100% !important;
   min-height: 100% !important;
-  overflow: hidden !important;
 }
 
 /* Shell general a pantalla completa */
@@ -432,7 +430,7 @@ body,
   align-items: center !important;
   justify-content: center !important;
   padding: clamp(20px, 3.2vh, 44px) clamp(24px, 3.5vw, 48px) !important;
-  overflow: hidden !important;
+  overflow-y: auto !important;
   min-height: 100vh !important;
   box-sizing: border-box !important;
 }
@@ -1059,14 +1057,13 @@ body,
 
 @media (max-width: 860px) {
   .login-shell {
-    position: fixed !important;
-    inset: 0 !important;
-    width: 100vw !important;
-    height: 100vh !important;
-    min-height: 0 !important;
+    position: relative !important;
+    inset: auto !important;
+    width: 100% !important;
+    min-height: 100vh !important;
     display: flex !important;
     flex-direction: column !important;
-    overflow: hidden !important;
+    overflow-y: auto !important;
   }
   .login-brand-panel {
     padding: 34px 24px !important;
