@@ -60,6 +60,19 @@ No se incorpora una versión vulnerable ejecutable: eso dejaría una puerta inse
 
 Esto demuestra que la funcionalidad legítima se conserva y que las solicitudes manipuladas fallan sin exponer datos.
 
+### Resultado validado en entorno local - 23 de noviembre de 2026
+
+| Prueba | Resultado esperado | Resultado observado |
+|---|---:|---:|
+| Origen CORS no autorizado | 403 | 403 |
+| Origen local autorizado | 200 | 200 |
+| Entrada con formato de SQLi en login | 400 | 400 |
+| Acción autenticada sin token CSRF | 403 | 403 |
+| Entrada XSS con etiqueta `script` | 400 | 400 |
+| Consulta legítima con JWT, cookie y CSRF válidos | 200 | 200 |
+
+También se ejecutó `npm audit --omit=dev` en el backend: no reportó vulnerabilidades de dependencias de producción. Para la captura de presentación, se puede repetir `npm run security-check` con Docker y el backend iniciados.
+
 ## Guion breve para presentar
 
 1. Explicar el riesgo: entrada no confiable no debe convertirse en instrucciones SQL o HTML.
