@@ -1,9 +1,17 @@
 export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
 export async function api(path, options = {}, token) {
+  const method = (options.method || 'GET').toUpperCase()
+  const csrfToken = token ? sessionStorage.getItem('ticotalento_csrf') : null
   const response = await fetch(`${API_URL}${path}`, {
     ...options,
-    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...options.headers },
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(token && !['GET', 'HEAD', 'OPTIONS'].includes(method) && csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
+      ...options.headers,
+    },
   })
   const raw = await response.text()
   let data

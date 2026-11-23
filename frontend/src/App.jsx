@@ -371,14 +371,14 @@ function Dashboard({ token }) {
 }
 
 export default function App() {
-  const [session, setSession] = useState(() => JSON.parse(localStorage.getItem('ticotalento_session') || 'null'))
+  const [session, setSession] = useState(() => JSON.parse(sessionStorage.getItem('ticotalento_session') || 'null'))
   const [page, setPage] = useState(() => localStorage.getItem('ticotalento_last_page') || 'inicio'); const [search, setSearch] = useState(''); const [chatContext, setChatContext] = useState('')
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [notifications, setNotifications] = useState(() => {
     try { return JSON.parse(localStorage.getItem('ticotalento_notifications') || 'null') || [{ id: 1, title: 'Solicitud en seguimiento', detail: 'Tu constancia salarial está en revisión.', time: 'Hace 2 horas', read: false }, { id: 2, title: 'Calendario laboral actualizado', detail: 'Ya puedes consultar los feriados del año.', time: 'Ayer', read: false }, { id: 3, title: 'Nueva política disponible', detail: 'Se actualizó la política de teletrabajo.', time: 'Hace 3 días', read: true }] } catch { return [] }
   })
-  const login = (data) => { localStorage.setItem('ticotalento_session', JSON.stringify(data)); setSession(data) }
-  const logout = () => { localStorage.removeItem('ticotalento_session'); localStorage.removeItem('ticotalento_last_page'); setSession(null) }
+  const login = (data) => { sessionStorage.setItem('ticotalento_session', JSON.stringify(data)); sessionStorage.setItem('ticotalento_csrf', data.csrf_token || ''); setSession(data) }
+  const logout = () => { sessionStorage.removeItem('ticotalento_session'); sessionStorage.removeItem('ticotalento_csrf'); localStorage.removeItem('ticotalento_last_page'); setSession(null) }
   const markNotificationsRead = () => { const updated = notifications.map((item) => ({ ...item, read: true })); setNotifications(updated); localStorage.setItem('ticotalento_notifications', JSON.stringify(updated)) }
   const openNotifications = () => { setNotificationsOpen((open) => !open); if (!notificationsOpen) markNotificationsRead() }
   useEffect(() => {
