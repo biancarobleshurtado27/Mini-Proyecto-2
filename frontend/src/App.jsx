@@ -9,6 +9,12 @@ import { getChatSuggestions } from './services/chatSuggestions'
 import { renderRoute } from './routes/routing'
 import './login.css'
 
+const routeIds = new Set(['inicio', 'chat', 'politicas', 'datos', 'ayuda', 'dashboard'])
+const routeFromHash = () => {
+  const route = window.location.hash.replace(/^#\/?/, '')
+  return routeIds.has(route) ? route : null
+}
+
 function MicrosoftLogo() {
   return (
     <svg width="18" height="18" viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -27,6 +33,11 @@ function Login({ onLogin }) {
   const [remember, setRemember] = useState(true)
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    document.body.classList.add('login-active')
+    return () => document.body.classList.remove('login-active')
+  }, [])
 
   const submit = async (event) => {
     event?.preventDefault()
@@ -372,20 +383,31 @@ function Dashboard({ token }) {
 
 export default function App() {
   const [session, setSession] = useState(() => JSON.parse(sessionStorage.getItem('ticotalento_session') || 'null'))
-  const [page, setPage] = useState(() => localStorage.getItem('ticotalento_last_page') || 'inicio'); const [search, setSearch] = useState(''); const [chatContext, setChatContext] = useState('')
+  const [page, setPage] = useState(() => routeFromHash() || localStorage.getItem('ticotalento_last_page') || 'inicio'); const [search, setSearch] = useState(''); const [chatContext, setChatContext] = useState('')
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [notifications, setNotifications] = useState(() => {
     try { return JSON.parse(localStorage.getItem('ticotalento_notifications') || 'null') || [{ id: 1, title: 'Solicitud en seguimiento', detail: 'Tu constancia salarial está en revisión.', time: 'Hace 2 horas', read: false }, { id: 2, title: 'Calendario laboral actualizado', detail: 'Ya puedes consultar los feriados del año.', time: 'Ayer', read: false }, { id: 3, title: 'Nueva política disponible', detail: 'Se actualizó la política de teletrabajo.', time: 'Hace 3 días', read: true }] } catch { return [] }
   })
-  const login = (data) => { sessionStorage.setItem('ticotalento_session', JSON.stringify(data)); sessionStorage.setItem('ticotalento_csrf', data.csrf_token || ''); setSession(data) }
+  const login = (data) => { sessionStorage.setItem('ticotalento_session', JSON.stringify(data)); sessionStorage.setItem('ticotalento_csrf', data.csrf_token || ''); const savedRoute = routeFromHash() || localStorage.getItem('ticotalento_last_page') || 'inicio'; window.location.hash = `/${savedRoute}`; setPage(savedRoute); setSession(data) }
   const logout = () => { sessionStorage.removeItem('ticotalento_session'); sessionStorage.removeItem('ticotalento_csrf'); localStorage.removeItem('ticotalento_last_page'); setSession(null) }
   const markNotificationsRead = () => { const updated = notifications.map((item) => ({ ...item, read: true })); setNotifications(updated); localStorage.setItem('ticotalento_notifications', JSON.stringify(updated)) }
   const openNotifications = () => { setNotificationsOpen((open) => !open); if (!notificationsOpen) markNotificationsRead() }
   useEffect(() => {
-    if (session?.role !== 'RRHH' && page === 'dashboard') { setPage('inicio'); localStorage.setItem('ticotalento_last_page', 'inicio') }
+    if (session?.role !== 'RRHH' && page === 'dashboard') { window.location.hash = '/inicio'; setPage('inicio'); localStorage.setItem('ticotalento_last_page', 'inicio') }
   }, [page, session])
+  useEffect(() => {
+    const syncRoute = () => {
+      const nextPage = routeFromHash() || 'inicio'
+      if (nextPage === 'dashboard' && session?.role !== 'RRHH') { window.location.hash = '/inicio'; return }
+      setPage(nextPage)
+      localStorage.setItem('ticotalento_last_page', nextPage)
+    }
+    window.addEventListener('hashchange', syncRoute)
+    return () => window.removeEventListener('hashchange', syncRoute)
+  }, [session?.role])
+  useEffect(() => { window.scrollTo({ top: 0, behavior: 'auto' }) }, [page])
   if (!session) return <Login onLogin={login} />
-  const navigate = (nextPage, context = '') => { if (nextPage === 'dashboard' && session.role !== 'RRHH') return; if (nextPage === 'chat') setChatContext(context); setPage(nextPage); localStorage.setItem('ticotalento_last_page', nextPage) }
+  const navigate = (nextPage, context = '') => { if (!routeIds.has(nextPage) || (nextPage === 'dashboard' && session.role !== 'RRHH')) return; if (nextPage === 'chat') setChatContext(context); setPage(nextPage); localStorage.setItem('ticotalento_last_page', nextPage); window.location.hash = `/${nextPage}` }
   const pageContent = renderRoute(page, { setPage: navigate, role: session.role, token: session.access_token, Chat, Dashboard, chatContext, clearChatContext: () => setChatContext('') })
   const titles = { politicas: 'Políticas y beneficios', datos: 'Mis datos y trámites', ayuda: 'Centro de ayuda' }
   const unreadCount = notifications.filter((item) => !item.read).length
