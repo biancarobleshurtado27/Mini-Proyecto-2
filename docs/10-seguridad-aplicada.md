@@ -73,6 +73,56 @@ Esto demuestra que la funcionalidad legítima se conserva y que las solicitudes 
 
 También se ejecutó `npm audit --omit=dev` en el backend: no reportó vulnerabilidades de dependencias de producción. Para la captura de presentación, se puede repetir `npm run security-check` con Docker y el backend iniciados.
 
+## Verificación manual segura
+
+Precondición: Docker, backend (`http://localhost:3001`) y frontend (`http://127.0.0.1:5173`) deben estar activos. Estas pruebas se limitan al proyecto local y a datos de demostración.
+
+| Control | Pasos manuales | Resultado correcto |
+|---|---|---|
+| Login legítimo | Iniciar sesión con una cuenta demo y contraseña válida. | Acceso al portal. |
+| SQLi | En correo de inicio de sesión, escribir `x' OR '1'='1`; usar cualquier contraseña. | Mensaje de correo inválido; nunca inicia sesión. |
+| XSS | Iniciar sesión, abrir Asistente IA y enviar `<script>alert(1)</script>`. | Error de entrada no permitida; no aparece alerta ni se ejecuta código. |
+| CSRF | En DevTools > Console, ejecutar el bloque de abajo. | Respuesta HTTP `403`. |
+| CORS | En PowerShell, ejecutar el comando de abajo. | Respuesta HTTP `403`. |
+| Rol RRHH | Como colaborador, abrir DevTools > Console y ejecutar el segundo bloque. | Respuesta HTTP `403`. |
+| CSP | En DevTools > Network, abrir una respuesta de la API y revisar `Content-Security-Policy`. | La cabecera existe y restringe scripts a `self`. |
+
+### Prueba manual de CSRF en consola del navegador
+
+```js
+const session = JSON.parse(sessionStorage.getItem('ticotalento_session'));
+fetch('http://localhost:3001/api/chat', {
+  method: 'POST',
+  credentials: 'include',
+  headers: {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${session.access_token}`
+  },
+  body: JSON.stringify({ question: 'Consulta manual de seguridad' })
+}).then((response) => console.log(response.status));
+```
+
+El bloque omite intencionalmente `X-CSRF-Token`; por eso debe imprimir `403`. No copies ni publiques el token de sesión.
+
+### Prueba manual de autorización por rol
+
+```js
+const session = JSON.parse(sessionStorage.getItem('ticotalento_session'));
+fetch('http://localhost:3001/api/reports/latest', {
+  headers: { Authorization: `Bearer ${session.access_token}` }
+}).then((response) => console.log(response.status));
+```
+
+Con una cuenta de colaborador debe imprimir `403`; un usuario RRHH autenticado sí puede consultar ese recurso.
+
+### Prueba manual de CORS en PowerShell
+
+```powershell
+curl.exe -i -H "Origin: https://attacker.invalid" http://localhost:3001/api/health
+```
+
+Debe devolver `HTTP/1.1 403 Forbidden`. Para documentar el origen autorizado, cambia el valor de `Origin` por `http://127.0.0.1:5173`; debe devolver `200`.
+
 ## Guion breve para presentar
 
 1. Explicar el riesgo: entrada no confiable no debe convertirse en instrucciones SQL o HTML.

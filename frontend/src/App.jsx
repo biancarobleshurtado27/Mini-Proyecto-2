@@ -83,7 +83,7 @@ function Login({ onLogin }) {
         <div className="login-brand-content">
           <div className="login-kicker-badge">
             <span className="kicker-dot" />
-            <span>Plataforma Institucional 2025</span>
+            <span>Plataforma Institucional 2026</span>
           </div>
 
           <h1 className="login-brand-headline">
