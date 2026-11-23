@@ -25,6 +25,10 @@ const deepseekUrl = process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com'
 const deepseekModel = process.env.DEEPSEEK_MODEL || 'deepseek-flash'
 const policyPromptPath = path.join(root, 'backend', 'src', 'prompts', 'politicas.md')
 const allowedOrigins = new Set((process.env.FRONTEND_ORIGIN || 'http://localhost:5173').split(',').map((origin) => origin.trim()).filter(Boolean))
+if (appEnv !== 'production') {
+  allowedOrigins.add('http://localhost:5173')
+  allowedOrigins.add('http://127.0.0.1:5173')
+}
 
 if (appEnv === 'production' && secret === 'development-only-change-this-to-a-32-character-secret') {
   throw new Error('APP_SECRET_KEY must be configured in production.')
